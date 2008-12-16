@@ -1,19 +1,35 @@
+class Poly
+  attr_accessor :sides, :points, :colour, :visible 
+
+  def initialize()
+    @sides = 5
+	@points = Array.new(@sides, [0,0].dup)
+	@colour = [0,0,0]
+	@visible = false
+  end
+end
+
 class PolyImg
   attr_reader :triangles, :dif
 
-  def initialize(tri = nil, dif = 200)    
-    if tri == nil then
-      @triangles = Array.new(Max) { |t| t = [[0,0],[0,0],[0,0],[0,0,0],[0]] } 
+  def initialize(polys = nil, dif = 2000)
+    if polys == nil then	  
+      @polys = Array.new(Max, Poly.new)
 	else
-	  @triangles = tri
+	  @polys = polys
 	end
 	@dif = dif
   end
   
   def randomize()
-    @triangles.map! { |t| 
-      p = randompoint()
-	  t = [p,p,p,randomcol,[0]] 
+    @polys.each { |poly|       
+	  poly.points.each { |p| 
+	    rpnt = randompoint()
+		p[0], p[1] = rpnt[0], rpnt[1] 
+	  }
+	  poly.visible = false
+	  rcol = randomcol()
+	  poly.colour[0],poly.colour[1],poly.colour[2] = rcol[0],rcol[1],rcol[2]
 	}
   end
   
@@ -27,25 +43,35 @@ class PolyImg
   end
   
   def mutate()
-    @triangles.map! { |t| 
-	  m = rand
-	  t[4][0] = 1-t[4][0] if m < 0.01
-	  t[0..2].map! { |v| 
-	    if t[4][0] == 0 then
-		  v = randompoint()
-		else
-  	      v[0] = [0,v[0]+rand*4-2,Xlim].sort[1]
-	      v[1] = [0,v[1]+rand*4-2,Ylim].sort[1]
-		end
-		v
-	  }
-	  if t[4][0] == 0 then
-		  t[3] = randomcol()
-      else
-  	    t[3].map! { |c| c=[0,c+(rand-0.5)/100,100].sort[1] }
-  	  end
-	  t
-	}    
+    srand
+    @polys.map! { |poly| 
+	  poly.visible = !poly.visible if rand < 0.01
+	  if rand < 0.03 then
+	      if not poly.visible then
+			rpnt = randompoint()
+	        poly.points.each { |p| p[0], p[1] = rpnt[0], rpnt[1] }
+	  	  else
+			poly.points.map! { |pnt| 
+			  newc = pnt[0]+rand*4-2
+			  pnt[0] = newc if newc >= 0 and newc < Xlim
+			  newc = pnt[1]+rand*4-2
+			  pnt[1] = newc if newc >= 0 and newc < Ylim
+			  pnt
+			}
+	  	  end
+	  end	  
+	  if rand < 0.03 then
+        if not poly.visible then	    
+ 		  rcol = randomcol()
+	      poly.colour[0],poly.colour[1],poly.colour[2] = rcol[0],rcol[1],rcol[2]
+	    else
+    	  poly.colour.map! { |c| 
+		    newc = c+(rand-0.5)/100 
+			if newc >= 0 and newc <= 100 then newc else c end}
+	    end
+	  end
+	  poly
+	}
   end
   
   def copy(parent2 = nil)
@@ -75,18 +101,22 @@ class PolyImg
   end
   
   def draw(cat)  
-	tridraw = Magick::Draw.new
-	tridraw.stroke_width(0)
+	polydraw = Magick::Draw.new
+	polydraw.stroke_width(0)
 	
-	@triangles.each { |tri| 
-      if tri[4][0] > 0 then 	
-		tridraw.fill("rgb(#{tri[3][0]*100}%,#{tri[3][1]*100}%,#{tri[3][2]*100}%)")
-		tridraw.fill_opacity(0.3)
-		tridraw.polygon(tri[0][0],tri[0][1],tri[1][0],tri[1][1],tri[2][0],tri[2][1])
+	@polys.each { |poly| 	  
+#	  puts poly.inspect
+      if poly.visible then
+	    polydraw.fill("rgb(#{poly.colour[0]*100}%,#{poly.colour[1]*100}%,#{poly.colour[2]*100}%)")
+	    polydraw.fill_opacity(0.3)
+#	    poly.points.each {}
+  	    puts poly.points.inspect
+         
+	    polydraw.polygon(poly.points[0], poly.points[1..-1])
 	  end
 	}
 
-	r,g,b = @triangles[0][3][0],@triangles[0][3][1],@triangles[0][3][2]
+#	r,g,b = @triangles[0][3][0],@triangles[0][3][1],@triangles[0][3][2]
 	canvas = Magick::ImageList.new
 	canvas.new_image(Xlim, Ylim) {  
 #	  self.background_color = "rgb(#{r*100}%,#{g*100}%,#{b*100}%)" 
@@ -95,7 +125,7 @@ class PolyImg
 	}
 	
 	#puts tridraw.inspect	
-	tridraw.draw(canvas)	
+	polydraw.draw(canvas)	
 	@dif = canvas.distortion_channel(cat,MeanSquaredErrorMetric)	
 	return canvas  
   end  

@@ -21,7 +21,7 @@ Ylim = cat.cur_image.rows
 
 pop = Array.new(MaxPop) { |img| img = PolyImg.new(); img.randomize(); img.draw(cat); img }
 
-for i in 1..100000 do 
+for i in 1..10000000 do 
     complist = []
     complist = [rand(MaxPop),rand(MaxPop),rand(MaxPop)] until complist.uniq.length == 3
 	
@@ -31,9 +31,10 @@ for i in 1..100000 do
 	pop[complist[2]].mutate()
 	canvas = pop[complist[2]].draw(cat)
 	
-	puts [complist+[pop[complist[2]].dif]].inspect
+	#puts (complist+[pop[complist[0]].dif]).inspect
 
-	if i % 100 == 50 then
+	if i % 5000 == 50 then
+  	  puts pop[complist[0]].dif
 	  sgen = gen.to_s
 	  sgen = '0'+sgen while sgen.length < 5
 	  fn = "out/test#{sgen}.jpg"

@@ -1,3 +1,9 @@
+=begin
+
+-Keep polys smaller?
+-test invis first
+
+=end
 class Poly
   attr_accessor :sides, :points, :colour, :visible 
 
@@ -42,7 +48,7 @@ class PolyImg
   def mutate()
     srand
     @polys.each { |poly| 
-	  poly.visible = !poly.visible if rand < 0.00001
+	  poly.visible = !poly.visible if rand < 0.00008
 	  if rand < 0.01 then #Move polygon points
 	      if not poly.visible then
 	        poly.points.each { |p| p[0], p[1] = rand(Xlim),rand(Ylim) }
@@ -69,6 +75,18 @@ class PolyImg
 	    r1, r2 = rand(poly.sides),rand(poly.sides)
 	    poly.points[r1],poly.points[r2]=poly.points[r2],poly.points[r1]
       end	  
+	}
+	
+	#Swap polys
+	if rand < 0.02 then
+		r1, r2 = rand(@polys.length),rand(@polys.length)
+		@polys[r1],@polys[r2]=@polys[r2],@polys[r1]
+	end
+	
+	#Sort invisible first
+	@polys.sort {|x,y| 
+	  return 0 if x==y
+	  if x then return 1 else return -1 end
 	}
   end
   

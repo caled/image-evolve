@@ -14,12 +14,13 @@ Start_time = Time.now
 Max = 100
 MaxPop = 10
 gen = 1
+best = 3000
 
-cat = ImageList.new("Fruit_Candles.jpg")
+cat = ImageList.new("mona_lisa.jpg").minify.minify
 Xlim = cat.cur_image.columns
 Ylim = cat.cur_image.rows
 
-pop = Array.new(MaxPop) { |img| img = PolyImg.new(); img.randomize(); img.draw(cat); img }
+pop = Array.new(MaxPop) { |img| img = PolyImg.new(); img.randomize(); img.mutate(); img.drawcompare(cat); img }
 
 for i in 1..10000000 do 
     complist = []
@@ -27,20 +28,25 @@ for i in 1..10000000 do
 	
 	complist.sort! {|x,y| pop[x].dif <=> pop[y].dif }
 	
-	pop[complist[2]] = pop[complist[1]].copy(pop[complist[0]])
+	pop[complist[2]] = pop[complist[0]].copy
 	pop[complist[2]].mutate()
-	canvas = pop[complist[2]].draw(cat)
+	pop[complist[2]].drawcompare(cat)
 	
 	#puts (complist+[pop[complist[0]].dif]).inspect
 
-	if i % 5000 == 50 then
-  	  puts pop[complist[0]].dif
-	  sgen = gen.to_s
-	  sgen = '0'+sgen while sgen.length < 5
-	  fn = "out/test#{sgen}.jpg"
-      canvas.write(fn)
-	  puts fn
-	  gen += 1	  
+	print('.') if i % 10 == 0
+	
+	if i % 100 == 0 then
+	    puts
+		pop.sort! {|x,y| x.dif <=> y.dif }
+		if pop[0].dif < best then 
+		  best = pop[0].dif			
+	  	  puts best
+		  fn = "out/test#{('00000'+gen.to_s)[-5..-1]}.jpg"
+ 	      pop[0].drawgood.write(fn)
+		  puts fn
+		  gen += 1	  
+	  end
 	end
 
 end

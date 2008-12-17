@@ -3,7 +3,7 @@ class Poly
 
   def initialize()
     @sides = 5
-	@points = Array.new(@sides, [0,0].dup)
+	@points = Array.new(@sides) {[0,0].dup}
 	@colour = [0,0,0]
 	@visible = false
   end
@@ -14,7 +14,7 @@ class PolyImg
 
   def initialize(polys = nil, dif = 2000)
     if polys == nil then	  
-      @polys = Array.new(Max, Poly.new)
+      @polys = Array.new(Max) {Poly.new}
 	else
 	  @polys = polys
 	end
@@ -24,12 +24,10 @@ class PolyImg
   def randomize()
     @polys.each { |poly|       
 	  poly.points.each { |p| 
-	    rpnt = randompoint()
-		p[0], p[1] = rpnt[0], rpnt[1] 
+		p[0], p[1] = rand(Xlim),rand(Ylim)
 	  }
 	  poly.visible = false
-	  rcol = randomcol()
-	  poly.colour[0],poly.colour[1],poly.colour[2] = rcol[0],rcol[1],rcol[2]
+	  poly.colour[0],poly.colour[1],poly.colour[2] = rand,rand,rand
 	}
   end
   
@@ -38,49 +36,56 @@ class PolyImg
   end
   
   def randompoint()
-    x,y = rand(Xlim),rand(Ylim)
-    [x,y]
+    [rand(Xlim),rand(Ylim)]
   end
   
   def mutate()
     srand
-    @polys.map! { |poly| 
-	  poly.visible = !poly.visible if rand < 0.01
-	  if rand < 0.03 then
+    @polys.each { |poly| 
+	  poly.visible = !poly.visible if rand < 0.00001
+	  if rand < 0.01 then #Move polygon points
 	      if not poly.visible then
-			rpnt = randompoint()
-	        poly.points.each { |p| p[0], p[1] = rpnt[0], rpnt[1] }
+	        poly.points.each { |p| p[0], p[1] = rand(Xlim),rand(Ylim) }
 	  	  else
-			poly.points.map! { |pnt| 
+			poly.points.each { |pnt| 
 			  newc = pnt[0]+rand*4-2
 			  pnt[0] = newc if newc >= 0 and newc < Xlim
 			  newc = pnt[1]+rand*4-2
 			  pnt[1] = newc if newc >= 0 and newc < Ylim
-			  pnt
+#			  puts newc
 			}
 	  	  end
 	  end	  
-	  if rand < 0.03 then
+	  if rand < 0.01 then #Change colours
         if not poly.visible then	    
- 		  rcol = randomcol()
-	      poly.colour[0],poly.colour[1],poly.colour[2] = rcol[0],rcol[1],rcol[2]
+	      poly.colour[0],poly.colour[1],poly.colour[2] = rand,rand,rand
 	    else
     	  poly.colour.map! { |c| 
-		    newc = c+(rand-0.5)/100 
+		    newc = c+(rand-0.5)/30 
 			if newc >= 0 and newc <= 100 then newc else c end}
 	    end
 	  end
-	  poly
+	  if rand < 0.01 then #swap poly points
+	    r1, r2 = rand(poly.sides),rand(poly.sides)
+	    poly.points[r1],poly.points[r2]=poly.points[r2],poly.points[r1]
+      end	  
 	}
   end
   
   def copy(parent2 = nil)
-	triangles = Array.new(Max) 
+    polys = Array.new(Max) {Poly.new}
+	
 	if parent2 == nil then 
-	    @triangles.each_index { |i| 
-		  triangles[i] = [@triangles[i][0].dup, @triangles[i][1].dup, @triangles[i][2].dup, @triangles[i][3].dup]
+	    @polys.each_index { |i1|
+		  @polys[i1].points.each_index { |i2|		    
+  		    polys[i1].points[i2][0], polys[i1].points[i2][1] = @polys[i1].points[i2][0], @polys[i1].points[i2][1]
+		  }
+		  polys[i1].colour[0],polys[i1].colour[1],polys[i1].colour[2] = 
+		    @polys[i1].colour[0],@polys[i1].colour[1],@polys[i1].colour[2]
+		  polys[i1].visible = @polys[i1].visible
 		}
 	else 
+=begin	
 	    @triangles.each_index { |i| 
 		  triangles[i] = [[0,0],[0,0],[0,0],[0,0,0],[0]]
 		  @triangles[i].each_index { |i2|
@@ -94,39 +99,47 @@ class PolyImg
 			}
 		  }
 		}
+=end
 	end
 	
-    newimg = PolyImg.new(triangles, @dif)
-    
+	#puts polys.inspect
+    PolyImg.new(polys, @dif)    
   end
   
-  def draw(cat)  
-	polydraw = Magick::Draw.new
+  def getdraw(polydraw = Magick::Draw.new)	
 	polydraw.stroke_width(0)
-	
 	@polys.each { |poly| 	  
 #	  puts poly.inspect
       if poly.visible then
 	    polydraw.fill("rgb(#{poly.colour[0]*100}%,#{poly.colour[1]*100}%,#{poly.colour[2]*100}%)")
 	    polydraw.fill_opacity(0.3)
-#	    poly.points.each {}
-  	    puts poly.points.inspect
-         
+#  	    puts poly.points.inspect         
 	    polydraw.polygon(poly.points[0], poly.points[1..-1])
 	  end
 	}
-
-#	r,g,b = @triangles[0][3][0],@triangles[0][3][1],@triangles[0][3][2]
+	polydraw
+  end
+  
+  def drawcompare(cat)  
 	canvas = Magick::ImageList.new
 	canvas.new_image(Xlim, Ylim) {  
 #	  self.background_color = "rgb(#{r*100}%,#{g*100}%,#{b*100}%)" 
-	  self.background_color = "white" 
-#	  self.background_color = "black" 
+#	  self.background_color = "white" 
+	  self.background_color = "black" 
 	}
 	
 	#puts tridraw.inspect	
-	polydraw.draw(canvas)	
+	getdraw.draw(canvas)	
 	@dif = canvas.distortion_channel(cat,MeanSquaredErrorMetric)	
 	return canvas  
   end  
+  
+  def drawgood()
+	canvas = Magick::ImageList.new
+	canvas.new_image(Xlim*4, Ylim*4) {  self.background_color = "black" }
+	draw = Magick::Draw.new
+	draw.scale(4,4)
+	getdraw(draw).draw(canvas)	
+	return canvas  
+  end    
 end 

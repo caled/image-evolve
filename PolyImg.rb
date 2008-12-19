@@ -1,9 +1,10 @@
 =begin
 
--Keep polys smaller?
--test invis first
+-svg output
 
 =end
+PointSpread = 5
+
 class Poly
   attr_accessor :sides, :points, :colour, :visible 
 
@@ -13,6 +14,14 @@ class Poly
 	@colour = [0,0,0]
 	@visible = false
   end
+  
+  def randpoints!()
+    rx, ry = rand(Xlim-PointSpread),rand(Ylim-PointSpread)
+	@points.each {|pnt|
+	  pnt[0], pnt[1] = rx+rand(PointSpread), ry+rand(PointSpread)
+	}
+  end
+  
 end
 
 class PolyImg
@@ -29,35 +38,28 @@ class PolyImg
   
   def randomize()
     @polys.each { |poly|       
-	  poly.points.each { |p| 
-		p[0], p[1] = rand(Xlim),rand(Ylim)
-	  }
+	  poly.randpoints!
 	  poly.visible = false
 	  poly.colour[0],poly.colour[1],poly.colour[2] = rand,rand,rand
 	}
-  end
-  
-  def randomcol()
-    [rand,rand,rand]
-  end
-  
-  def randompoint()
-    [rand(Xlim),rand(Ylim)]
+	@poly[0].visible = true
   end
   
   def mutate()
     srand
     @polys.each { |poly| 
-	  poly.visible = !poly.visible if rand < 0.00008
+	  poly.visible = !poly.visible if rand < 0.00001
 	  if rand < 0.01 then #Move polygon points
 	      if not poly.visible then
-	        poly.points.each { |p| p[0], p[1] = rand(Xlim),rand(Ylim) }
+	        poly.randpoints!
 	  	  else
 			poly.points.each { |pnt| 
-			  newc = pnt[0]+rand*4-2
-			  pnt[0] = newc if newc >= 0 and newc < Xlim
-			  newc = pnt[1]+rand*4-2
-			  pnt[1] = newc if newc >= 0 and newc < Ylim
+				if rand < 0.2
+					newc = pnt[0]+rand*4-2
+					pnt[0] = newc if newc >= 0 and newc < Xlim
+					newc = pnt[1]+rand*4-2
+					pnt[1] = newc if newc >= 0 and newc < Ylim
+				end
 #			  puts newc
 			}
 	  	  end
@@ -84,9 +86,15 @@ class PolyImg
 	end
 	
 	#Sort invisible first
-	@polys.sort {|x,y| 
-	  return 0 if x==y
-	  if x then return 1 else return -1 end
+    sortpolys = Array.new(Max) 
+	i = 0
+	[false,true].each { |b| 
+		@polys.each {|poly| 
+			if poly.visible == b then
+				sortpolys[i] = poly
+				i += 1
+			end	
+		}
 	}
   end
   
@@ -122,6 +130,7 @@ class PolyImg
 	
 	#puts polys.inspect
     PolyImg.new(polys, @dif)    
+	
   end
   
   def getdraw(polydraw = Magick::Draw.new)	
@@ -137,6 +146,35 @@ class PolyImg
 	}
 	polydraw
   end
+  
+  def getsvg()
+    svg = '<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" 
+"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+
+<svg width="100%" height="100%" version="1.1"
+xmlns="http://www.w3.org/2000/svg">
+'+"
+<g transform=\"scale(2)\">
+<rect width=\"#{Xlim}\" height=\"#{Ylim}\"
+style=\"fill:rgb(0,0,0);stroke-width:0\"/>
+
+"
+	
+	@polys.each { |poly| 
+		if poly.visible then
+			pnts = ''
+			poly.points.each {|p| pnts += p[0].to_s+','+p[1].to_s+' '}
+			svg += "<polygon points=\"#{pnts}\"
+style=\"fill:rgb(#{poly.colour[0]*100}%,#{poly.colour[1]*100}%,#{poly.colour[2]*100}%);fill-opacity:0.3\"/>
+"
+		end
+	}
+	
+	svg += "</g></svg>\n"
+  
+    svg
+  end  
   
   def drawcompare(cat)  
 	canvas = Magick::ImageList.new
@@ -154,10 +192,12 @@ class PolyImg
   
   def drawgood()
 	canvas = Magick::ImageList.new
-	canvas.new_image(Xlim*4, Ylim*4) {  self.background_color = "black" }
+	canvas.new_image(Xlim*2, Ylim*2) {  self.background_color = "black" }
 	draw = Magick::Draw.new
-	draw.scale(4,4)
+	draw.scale(2,2)
 	getdraw(draw).draw(canvas)	
 	return canvas  
   end    
+  
+
 end 

@@ -39,12 +39,13 @@ for i in 1..10000000 do
 		if pop[0].dif < best then 
 		  best = pop[0].dif			
 	  	  puts best
-		  fn = "out/test#{('00000'+gen.to_s)[-5..-1]}.jpg"
+		  fn = "out/evo#{('00000'+gen.to_s)[-5..-1]}.jpg"
  	      pop[0].drawgood.write(fn)
 		  puts fn
 		  
-		  f = File.new("out/best.txt", File::CREAT|File::TRUNC|File::RDWR)
-          f.write(pop[0].getdraw.inspect)
+		  f = File.new("out/best.svg", File::CREAT|File::TRUNC|File::WRONLY)
+          f.write(pop[0].getsvg)
+		  
 		  
 		  gen += 1	  
 	  end

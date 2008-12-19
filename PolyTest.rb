@@ -24,15 +24,20 @@ pop = Array.new(MaxPop) { img = PolyImg.new(); img.randomize(); img.drawcompare(
 canvas = pop[0].drawgood
 canvas.write("out/test1.jpg")
 
+500.times { pop[0].mutate() }
 100.times { |t|
 	pop[0].mutate()
 	canvas = pop[0].drawgood
-	canvas.write("out/final#{('000'+t.to_s)[-3..-1]}.jpg")
+	canvas.write("out/test#{('000'+t.to_s)[-3..-1]}.jpg")
 }
 
 pop[1] = pop[0].copy()
 canvas = pop[1].drawgood
 canvas.write("out/test2.jpg")
+
+f = File.new("out/test.svg", File::CREAT|File::TRUNC|File::RDWR)
+f.write(pop[0].getsvg)
+
 
 puts "Runtime: #{Time.now - Start_time} sec"
 

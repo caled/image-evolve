@@ -46,22 +46,20 @@ for i in 1..10000000 do
 		pop.sort! {|x,y| x.dif <=> y.dif }
 		if pop[0].dif < best then 
 			best = pop[0].dif			
-		  	puts best
+		  	puts "Score: #{best*10000}"
 			begin
 				fn = "out/evo#{('00000'+gen.to_s)[-5..-1]}.jpg"
 				gen += 1	  
 			end while File::exists?( fn )
 			
 	 	    pop[0].drawgood.write(fn)
-			puts fn
 			pop[0].save(polyFile)
-			  
+			puts fn
+			
 			  #f = File.new("out/best.svg", File::CREAT|File::TRUNC|File::WRONLY)
-	          #f.write(pop[0].getsvg)
-		  
-	  end
+	          #f.write(pop[0].getsvg)		  
+		end
 	end
-
 end
 
 #puts pols.inspect

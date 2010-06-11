@@ -4,7 +4,7 @@
 
 =end
 PointSpread = 5
-VisChance = 1_000_000
+VisChance = 800_000
 GoodImageScale = 4
 
 class Poly
@@ -54,35 +54,33 @@ class PolyImg
   def mutate()
     srand
     @polys.each { |poly| 
-	  poly.visible = !poly.visible if rand*VisChance < 1
-	  if rand < 0.01 then #Move polygon points
-	      if not poly.visible then
-	        poly.randAll!()
-	  	  else
-			poly.points.each { |pnt| 
-				if rand < 0.2
-					newc = pnt[0]+rand*4-2
-					pnt[0] = newc if newc >= 0 and newc < Xlim
-					newc = pnt[1]+rand*4-2
-					pnt[1] = newc if newc >= 0 and newc < Ylim
-				end
+	    if not poly.visible then
+			if rand*VisChance < 1 then
+				poly.randAll!()
+				poly.visible = !poly.visible 
+			end
+		else	  
+			if rand < 0.01 then #Move polygon points
+				poly.points.each { |pnt| 
+					if rand < 0.2
+						newc = pnt[0]+rand*4-2
+						pnt[0] = newc if newc >= 0 and newc < Xlim
+						newc = pnt[1]+rand*4-2
+						pnt[1] = newc if newc >= 0 and newc < Ylim
+					end
 #			  puts newc
-			}
-	  	  end
-	  end	  
-	  if rand < 0.01 then #Change colours
-        if not poly.visible then	    
-	      poly.colour[0],poly.colour[1],poly.colour[2] = rand,rand,rand
-	    else
-    	  poly.colour.map! { |c| 
-		    newc = c+(rand-0.5)/30 
-			if newc >= 0 and newc <= 100 then newc else c end}
-	    end
-	  end
-	  if rand < 0.01 then #swap poly points
-	    r1, r2 = rand(poly.sides),rand(poly.sides)
-	    poly.points[r1],poly.points[r2]=poly.points[r2],poly.points[r1]
-      end	  
+				}
+		  	end
+			if rand < 0.01 then #Change colours
+				poly.colour.map! { |c| 
+				newc = c+(rand-0.5)/30 
+				if newc >= 0 and newc <= 100 then newc else c end}
+			end
+			if rand < 0.01 then #swap poly points
+				r1, r2 = rand(poly.sides),rand(poly.sides)
+				poly.points[r1],poly.points[r2]=poly.points[r2],poly.points[r1]
+			end 
+		end
 	}
 	
 	#Swap polys ( changes the draw order )
@@ -105,8 +103,7 @@ class PolyImg
 	}
 	
 	#puts polys.inspect
-    PolyImg.new(polys, @dif)    
-	
+    PolyImg.new(polys, @dif)	
   end
   
   def getdraw(polydraw = Magick::Draw.new)	

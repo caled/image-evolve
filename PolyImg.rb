@@ -4,6 +4,7 @@
 
 =end
 PointSpread = 5
+VisChance = 1_000_000
 
 class Poly
   attr_accessor :sides, :points, :colour, :visible 
@@ -42,13 +43,13 @@ class PolyImg
 	  poly.visible = false
 	  poly.colour[0],poly.colour[1],poly.colour[2] = rand,rand,rand
 	}
-	@poly[0].visible = true
+	@polys[0].visible = true
   end
   
   def mutate()
     srand
     @polys.each { |poly| 
-	  poly.visible = !poly.visible if rand < 0.00001
+	  poly.visible = !poly.visible if rand*VisChance < 1
 	  if rand < 0.01 then #Move polygon points
 	      if not poly.visible then
 	        poly.randpoints!
@@ -84,18 +85,6 @@ class PolyImg
 		r1, r2 = rand(@polys.length),rand(@polys.length)
 		@polys[r1],@polys[r2]=@polys[r2],@polys[r1]
 	end
-	
-	#Sort invisible first
-    sortpolys = Array.new(Max) 
-	i = 0
-	[false,true].each { |b| 
-		@polys.each {|poly| 
-			if poly.visible == b then
-				sortpolys[i] = poly
-				i += 1
-			end	
-		}
-	}
   end
   
   def copy(parent2 = nil)

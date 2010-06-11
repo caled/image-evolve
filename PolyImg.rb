@@ -5,6 +5,7 @@
 =end
 PointSpread = 5
 VisChance = 1_000_000
+GoodImageScale = 4
 
 class Poly
   attr_accessor :sides, :points, :colour, :visible 
@@ -23,6 +24,11 @@ class Poly
 	}
   end
   
+  def randAll!()
+    randpoints!
+    @colour[0],@colour[1],@colour[2] = rand,rand,rand	
+  end
+  
 end
 
 class PolyImg
@@ -37,11 +43,10 @@ class PolyImg
 	@dif = dif
   end
   
-  def randomize()
+  def randomize(vis = false)
     @polys.each { |poly|       
-	  poly.randpoints!
-	  poly.visible = false
-	  poly.colour[0],poly.colour[1],poly.colour[2] = rand,rand,rand
+	  poly.visible = vis
+	  poly.randAll!()	  
 	}
 	@polys[0].visible = true
   end
@@ -52,7 +57,7 @@ class PolyImg
 	  poly.visible = !poly.visible if rand*VisChance < 1
 	  if rand < 0.01 then #Move polygon points
 	      if not poly.visible then
-	        poly.randpoints!
+	        poly.randAll!()
 	  	  else
 			poly.points.each { |pnt| 
 				if rand < 0.2
@@ -80,42 +85,24 @@ class PolyImg
       end	  
 	}
 	
-	#Swap polys
+	#Swap polys ( changes the draw order )
 	if rand < 0.02 then
 		r1, r2 = rand(@polys.length),rand(@polys.length)
 		@polys[r1],@polys[r2]=@polys[r2],@polys[r1]
 	end
   end
   
-  def copy(parent2 = nil)
+  def copy
     polys = Array.new(Max) {Poly.new}
 	
-	if parent2 == nil then 
-	    @polys.each_index { |i1|
-		  @polys[i1].points.each_index { |i2|		    
-  		    polys[i1].points[i2][0], polys[i1].points[i2][1] = @polys[i1].points[i2][0], @polys[i1].points[i2][1]
-		  }
-		  polys[i1].colour[0],polys[i1].colour[1],polys[i1].colour[2] = 
-		    @polys[i1].colour[0],@polys[i1].colour[1],@polys[i1].colour[2]
-		  polys[i1].visible = @polys[i1].visible
-		}
-	else 
-=begin	
-	    @triangles.each_index { |i| 
-		  triangles[i] = [[0,0],[0,0],[0,0],[0,0,0],[0]]
-		  @triangles[i].each_index { |i2|
-			@triangles[i][i2].each_index { |i3|
-			  if i2 == 4 then #Visible
-			    triangles[i][i2][i3] = [@triangles[i][i2][i3],parent2.triangles[i][i2][i3]].max
-			  else
-			    #puts [i,i2,i3,triangles[i][i2][i3],parent2.triangles[i][i2][i3]].inspect
-		        triangles[i][i2][i3] = (@triangles[i][i2][i3] + parent2.triangles[i][i2][i3])/2
-			  end
-			}
-		  }
-		}
-=end
-	end
+	@polys.each_index { |i1|
+	  @polys[i1].points.each_index { |i2|		    
+		polys[i1].points[i2][0], polys[i1].points[i2][1] = @polys[i1].points[i2][0], @polys[i1].points[i2][1]
+	  }
+	  polys[i1].colour[0],polys[i1].colour[1],polys[i1].colour[2] = 
+		@polys[i1].colour[0],@polys[i1].colour[1],@polys[i1].colour[2]
+	  polys[i1].visible = @polys[i1].visible
+	}
 	
 	#puts polys.inspect
     PolyImg.new(polys, @dif)    
@@ -168,12 +155,9 @@ style=\"fill:rgb(#{poly.colour[0]*100}%,#{poly.colour[1]*100}%,#{poly.colour[2]*
   def drawcompare(cat)  
 	canvas = Magick::ImageList.new
 	canvas.new_image(Xlim, Ylim) {  
-#	  self.background_color = "rgb(#{r*100}%,#{g*100}%,#{b*100}%)" 
-#	  self.background_color = "white" 
 	  self.background_color = "black" 
 	}
 	
-	#puts tridraw.inspect	
 	getdraw.draw(canvas)	
 	@dif = canvas.distortion_channel(cat,MeanSquaredErrorMetric)	
 	return canvas  
@@ -181,12 +165,45 @@ style=\"fill:rgb(#{poly.colour[0]*100}%,#{poly.colour[1]*100}%,#{poly.colour[2]*
   
   def drawgood()
 	canvas = Magick::ImageList.new
-	canvas.new_image(Xlim*2, Ylim*2) {  self.background_color = "black" }
+	canvas.new_image(Xlim*GoodImageScale, Ylim*GoodImageScale) {  self.background_color = "black" }
 	draw = Magick::Draw.new
-	draw.scale(2,2)
+	draw.scale(GoodImageScale,GoodImageScale)
 	getdraw(draw).draw(canvas)	
 	return canvas  
   end    
   
+	def save(out)
+		lines = []
+		@polys.each { |poly| 
+			line = []
+			line << (poly.visible ? 1 : 0)
+			poly.colour.each {|c| line << c}
+			poly.points.each {|p| line << p[0]; line << p[1]}
+			lines << line.join(',')
+		}
+		outFile = File.new(out, "w")
+		if outFile
+			outFile.syswrite(lines.join("\n"))
+		else
+			puts "Unable to open file!"
+		end
+		outFile.close
+	end 
 
+	def load(inFileName)
+		lines = File.open(inFileName).readlines.map { |z| z = z.split(',') }	
+		
+		@polys.each_index { |i| 
+			line = lines[i]
+			break if !line
+			poly = @polys[i]
+			poly.visible = (line.delete_at(0).to_i==1 ? true : false)
+			poly.colour.map! {line.delete_at(0).to_f}
+			poly.points.each {|p| 
+				p[0] = line.delete_at(0).to_f; 
+				p[1] = line.delete_at(0).to_f; 
+			}
+		}
+		puts 'Opening '+inFileName
+	end 	  
 end 
